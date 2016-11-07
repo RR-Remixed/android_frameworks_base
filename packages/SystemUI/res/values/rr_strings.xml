@@ -179,4 +179,8 @@
     <string name="recents_custom_android_n">CLEAR ALL</string>
 
     <string name="quick_settings_region_screenshot_label">Partial screenshot</string> 
+
+    <!-- Screenshot action -->
+    <string name="screenshot_abort_title">No screenshot taken</string>
+    <string name="screenshot_abort_text">Operation aborted</string>
 </resources>
