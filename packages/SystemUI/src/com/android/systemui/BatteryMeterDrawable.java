@@ -560,6 +560,12 @@ public class BatteryMeterDrawable extends Drawable implements
 
 
     private int getBoltColor() {
+
+        if (mBoltOverlay) {
+            return mContext.getResources().getColor(mStyle == BATTERY_STYLE_CIRCLE
+                                                        ? R.color.batterymeter_bolt_color
+                                                        : R.color.system_primary_color);
+        }
         if (mStyle == BATTERY_STYLE_CIRCLE) {
             updateChargeColor();
             int chargeColor = mChargeColor;
@@ -576,19 +582,17 @@ public class BatteryMeterDrawable extends Drawable implements
         if (mWidth <= 0 || mHeight <= 0) return;
 
         final float widthDiv2 = mWidth / 2f;
-        // text size is width / 2 - 2dp for wiggle room
 
-        if ((Settings.System.getInt(mContext.getContentResolver(), Settings.System.BATTERY_LARGE_TEXT, 0) == 1)) {
         final float textSize;
         switch(mStyle) {
             case BATTERY_STYLE_CIRCLE:
-                textSize = widthDiv2 - mContext.getResources().getDisplayMetrics().density / 1.3f;
+                textSize = widthDiv2 * 0.8f;
                 break;
             case BATTERY_STYLE_LANDSCAPE:
-                textSize = widthDiv2 * 1.3f;
+                textSize = widthDiv2 * 1.0f;
                 break;
             default:
-                textSize = widthDiv2;
+                textSize = widthDiv2 * 0.9f;
                 break;
                 }
         mTextAndBoltPaint.setTextSize(textSize);
