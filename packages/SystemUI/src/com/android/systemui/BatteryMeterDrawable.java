@@ -684,15 +684,15 @@ public class BatteryMeterDrawable extends Drawable implements
 
         // Make sure we don't draw the charge indicator if not plugged in
         final Drawable d = mBatteryDrawable.findDrawableByLayerId(R.id.battery_charge_indicator);
-		if (d != null) {
-            if (d instanceof BitmapDrawable) {
-                // In case we are using a BitmapDrawable, which we should be unless something bad
-                // happened, we need to change the paint rather than the alpha in case the blendMode
-                // has been set to clear.  Clear always clears regardless of alpha level ;)
-                final BitmapDrawable bd = (BitmapDrawable) d;
-                bd.getPaint().set(mPluggedIn ? mTextAndBoltPaint : mClearPaint);
-            } else {
-                d.setAlpha(mPluggedIn ? 255 : 0);
+        if (d instanceof BitmapDrawable) {
+            // In case we are using a BitmapDrawable, which we should be unless something bad
+            // happened, we need to change the paint rather than the alpha in case the blendMode
+            // has been set to clear.  Clear always clears regardless of alpha level ;)
+            final BitmapDrawable bd = (BitmapDrawable) d;
+            bd.getPaint().set(!mPluggedIn || (mPluggedIn && mShowPercent && !mForceChargeBatteryText)
+                                      ? mClearPaint : mTextAndBoltPaint);
+            if (mBoltOverlay) {
+                mBoltDrawable.setTint(getBoltColor());
             }
         }
 
