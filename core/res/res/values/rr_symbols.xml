@@ -169,5 +169,3 @@
   <java-symbol type="color" name="notification_text_default_color" />
   <java-symbol type="color" name="sender_text_color" />
 </resources>
-
-</resources>
