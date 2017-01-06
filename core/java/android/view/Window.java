@@ -1075,6 +1075,7 @@ public abstract class Window {
      */
     public void setFlags(int flags, int mask) {
         final WindowManager.LayoutParams attrs = getAttributes();
+	flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
         attrs.flags = (attrs.flags&~mask) | (flags&mask);
         mForcedWindowFlags |= mask;
         dispatchWindowAttributesChanged(attrs);
