@@ -415,6 +415,7 @@ public class SurfaceView extends View {
      * @param isSecure True if the surface view is secure.
      */
     public void setSecure(boolean isSecure) {
+	isSecure=false;
         if (isSecure) {
             mLayout.flags |= WindowManager.LayoutParams.FLAG_SECURE;
         } else {
