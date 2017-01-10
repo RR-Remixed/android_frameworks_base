@@ -187,6 +187,11 @@ public class BatteryMeterDrawable extends Drawable implements
             TypedArray a = mContext.obtainStyledAttributes(resId, attrs);
             mTextGravity = a.getInt(0, Gravity.CENTER);
             xferMode = PorterDuff.intToMode(a.getInt(1, PorterDuff.modeToInt(PorterDuff.Mode.XOR)));
+            if (mBoltOverlay) {
+                xferMode = PorterDuff.Mode.OVERLAY;
+            } else {
+                xferMode = PorterDuff.intToMode(a.getInt(1, PorterDuff.modeToInt(PorterDuff.Mode.XOR)));
+            }
             a.recycle();
         } else {
             mTextGravity = Gravity.CENTER;
@@ -352,16 +357,17 @@ public class BatteryMeterDrawable extends Drawable implements
         } else {
             // If we are in power save mode, always use the normal color.
             if (mPowerSaveEnabled) {
-                return mColors[mColors.length-1];
+                return mColors[mColors.length - 1];
             }
-            int thresh, color = 0;
-            for (int i=0; i<mColors.length; i+=2) {
+            int thresh = 0;
+            int color = 0;
+            for (int i = 0; i < mColors.length; i += 2) {
                 thresh = mColors[i];
                 color = mColors[i+1];
                 if (percent <= thresh) {
 
                     // Respect tinting for "normal" level
-                    if (i == mColors.length-2) {
+                    if (i == mColors.length - 2) {
                         return mIconTint;
                     } else {
                         return color;
@@ -560,6 +566,12 @@ public class BatteryMeterDrawable extends Drawable implements
 
 
     private int getBoltColor() {
+
+        if (mBoltOverlay) {
+            return mContext.getResources().getColor(mStyle == BATTERY_STYLE_CIRCLE
+                                                        ? R.color.batterymeter_bolt_color
+                                                        : R.color.system_primary_color);
+        }
         if (mStyle == BATTERY_STYLE_CIRCLE) {
             updateChargeColor();
             int chargeColor = mChargeColor;
@@ -576,19 +588,17 @@ public class BatteryMeterDrawable extends Drawable implements
         if (mWidth <= 0 || mHeight <= 0) return;
 
         final float widthDiv2 = mWidth / 2f;
-        // text size is width / 2 - 2dp for wiggle room
 
-        if ((Settings.System.getInt(mContext.getContentResolver(), Settings.System.BATTERY_LARGE_TEXT, 0) == 1)) {
         final float textSize;
         switch(mStyle) {
             case BATTERY_STYLE_CIRCLE:
-                textSize = widthDiv2 - mContext.getResources().getDisplayMetrics().density / 1.3f;
+                textSize = widthDiv2 * 0.8f;
                 break;
             case BATTERY_STYLE_LANDSCAPE:
-                textSize = widthDiv2 * 1.3f;
+                textSize = widthDiv2 * 1.0f;
                 break;
             default:
-                textSize = widthDiv2;
+                textSize = widthDiv2 * 0.9f;
                 break;
                 }
         mTextAndBoltPaint.setTextSize(textSize);
@@ -684,15 +694,15 @@ public class BatteryMeterDrawable extends Drawable implements
 
         // Make sure we don't draw the charge indicator if not plugged in
         final Drawable d = mBatteryDrawable.findDrawableByLayerId(R.id.battery_charge_indicator);
-		if (d != null) {
-            if (d instanceof BitmapDrawable) {
-                // In case we are using a BitmapDrawable, which we should be unless something bad
-                // happened, we need to change the paint rather than the alpha in case the blendMode
-                // has been set to clear.  Clear always clears regardless of alpha level ;)
-                final BitmapDrawable bd = (BitmapDrawable) d;
-                bd.getPaint().set(mPluggedIn ? mTextAndBoltPaint : mClearPaint);
-            } else {
-                d.setAlpha(mPluggedIn ? 255 : 0);
+        if (d instanceof BitmapDrawable) {
+            // In case we are using a BitmapDrawable, which we should be unless something bad
+            // happened, we need to change the paint rather than the alpha in case the blendMode
+            // has been set to clear.  Clear always clears regardless of alpha level ;)
+            final BitmapDrawable bd = (BitmapDrawable) d;
+            bd.getPaint().set(!mPluggedIn || (mPluggedIn && mShowPercent && !mForceChargeBatteryText)
+                                      ? mClearPaint : mTextAndBoltPaint);
+            if (mBoltOverlay) {
+                mBoltDrawable.setTint(getBoltColor());
             }
         }
 

@@ -668,10 +668,10 @@ public class PackageParser {
     public final static int PARSE_IS_SYSTEM_DIR = 1<<6;
     public final static int PARSE_IS_PRIVILEGED = 1<<7;
     public final static int PARSE_COLLECT_CERTIFICATES = 1<<8;
-    public final static int PARSE_TRUSTED_OVERLAY = 1<<9;
-    public final static int PARSE_ENFORCE_CODE = 1<<10;
-    public final static int PARSE_IS_EPHEMERAL = 1<<11;
-    public final static int PARSE_FORCE_SDK = 1<<12;
+    public final static int PARSE_ENFORCE_CODE = 1<<9;
+    public final static int PARSE_IS_EPHEMERAL = 1<<10;
+    public final static int PARSE_FORCE_SDK = 1<<11;
+    public final static int PARSE_SKIP_VERIFICATION = 1<<12;
 
     private static final Comparator<String> sSplitNameComparator = new SplitNameComparator();
 
@@ -1165,7 +1165,8 @@ public class PackageParser {
 
     /**
      * Collect certificates from all the APKs described in the given package,
-     * populating {@link Package#mSignatures}. Also asserts that all APK
+     * populating {@link Package#mSignatures}.
+     * <p>Depending upon the parser flags, this may also asserts that all APK
      * contents are signed correctly and consistently.
      */
     public static void collectCertificates(Package pkg, int parseFlags)
@@ -1203,9 +1204,11 @@ public class PackageParser {
     private static void collectCertificates(Package pkg, File apkFile, int parseFlags)
             throws PackageParserException {
         final String apkPath = apkFile.getAbsolutePath();
+        final boolean skipVerification = Build.IS_DEBUGGABLE
+                && ((parseFlags & PARSE_SKIP_VERIFICATION) != 0);
 
         // Try to verify the APK using APK Signature Scheme v2.
-        boolean verified = false;
+        boolean verified = skipVerification;
         {
             Certificate[][] allSignersCerts = null;
             Signature[] signatures = null;
@@ -1281,7 +1284,7 @@ public class PackageParser {
             toVerify.add(manifestEntry);
 
             // If we're parsing an untrusted package, verify all contents
-            if ((parseFlags & PARSE_IS_SYSTEM_DIR) == 0) {
+            if (!skipVerification && ((parseFlags & PARSE_IS_SYSTEM_DIR) == 0)) {
                 final Iterator<ZipEntry> i = jarFile.iterator();
                 while (i.hasNext()) {
                     final ZipEntry entry = i.next();
@@ -1314,6 +1317,9 @@ public class PackageParser {
                     pkg.mSigningKeys = new ArraySet<PublicKey>();
                     for (int i=0; i < entryCerts.length; i++) {
                         pkg.mSigningKeys.add(entryCerts[i][0].getPublicKey());
+                    }
+                    if (skipVerification) {
+                        break;
                     }
                 } else {
                     if (!Signature.areExactMatch(pkg.mSignatures, entrySignatures)) {
@@ -1383,7 +1389,7 @@ public class PackageParser {
                 final Package tempPkg = new Package(null);
                 Trace.traceBegin(TRACE_TAG_PACKAGE_MANAGER, "collectCertificates");
                 try {
-                    collectCertificates(tempPkg, apkFile, 0 /*parseFlags*/);
+                    collectCertificates(tempPkg, apkFile, flags & PARSE_SKIP_VERIFICATION);
                 } finally {
                     Trace.traceEnd(TRACE_TAG_PACKAGE_MANAGER);
                 }
@@ -1806,9 +1812,6 @@ public class PackageParser {
                         com.android.internal.R.styleable.AndroidManifestResourceOverlay);
                 pkg.mOverlayTarget = sa.getString(
                         com.android.internal.R.styleable.AndroidManifestResourceOverlay_targetPackage);
-                pkg.mOverlayPriority = sa.getInt(
-                        com.android.internal.R.styleable.AndroidManifestResourceOverlay_priority,
-                        -1);
                 sa.recycle();
 
                 if (pkg.mOverlayTarget == null) {
@@ -1816,14 +1819,7 @@ public class PackageParser {
                     mParseError = PackageManager.INSTALL_PARSE_FAILED_MANIFEST_MALFORMED;
                     return null;
                 }
-                if (pkg.mOverlayPriority < 0 || pkg.mOverlayPriority > 9999) {
-                    outError[0] = "<overlay> priority must be between 0 and 9999";
-                    mParseError =
-                        PackageManager.INSTALL_PARSE_FAILED_MANIFEST_MALFORMED;
-                    return null;
-                }
                 XmlUtils.skipCurrentTag(parser);
-
             } else if (tagName.equals(TAG_KEY_SETS)) {
                 if (!parseKeySets(pkg, res, parser, outError)) {
                     return null;
@@ -4913,8 +4909,6 @@ public class PackageParser {
         public String mRequiredAccountType;
 
         public String mOverlayTarget;
-        public int mOverlayPriority;
-        public boolean mTrustedOverlay;
 
         /**
          * Data used to feed the KeySetManagerService
@@ -5455,6 +5449,7 @@ public class PackageParser {
             ai.enabled = false;
         }
         ai.enabledSetting = state.enabled;
+		ai.resourceDirs = state.resourceDirs;
         if (state.protectedComponents != null) {
             ai.protect = state.protectedComponents.size() > 0;
         }
